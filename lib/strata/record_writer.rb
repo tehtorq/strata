@@ -153,7 +153,7 @@ module Strata
 
         value = string[offset, length]
 
-        unless rule['fixed_val']
+        unless rule['fixed_val'] || rule['no_strip']
           value = value.rstrip if field_type == 'A'
           value = value.to_i.to_s if field_type == 'N'
         end
