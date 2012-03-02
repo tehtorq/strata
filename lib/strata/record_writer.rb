@@ -70,7 +70,6 @@ module Strata
     end
     
     def valid_characters(string)
-      puts allowed_characters.inspect
       string.each_char.all? {|c| allowed_characters.include?(c)}
     end
     
@@ -92,34 +91,6 @@ module Strata
         raise "#{k}: Invalid data - expected #{rule['fixed_val']}, got #{v}" if rule['fixed_val'] && (v != rule['fixed_val'])
         raise "#{k}: Numeric value required" if (rule['a_n'] == 'N') && !(Float(v) rescue false)
       end
-    end
-    
-    def self.matches_definition?(string)
-      self.class_layout_rules.each do |field, rule|
-        regex = rule['regex']
-        fixed_val = rule['fixed_val']
-        value = self.retrieve_field_value(string, field, rule)
-        
-        return false if fixed_val and value != fixed_val
-        return false if regex and not value =~ /#{regex}/
-      end
-      
-      true
-    end
-    
-    def self.string_to_hash(string)
-      hash = {}
-
-      self.exposed_class_layout_rules.each do |field, rule|
-        hash[field.to_sym] = self.retrieve_field_value(string, field, rule)
-      end
-
-      hash
-    end
-
-    def self.from_s(string)
-      options = self.string_to_hash(string)
-      record = self.new(options)
     end
   
     module ClassMethods
@@ -175,7 +146,7 @@ module Strata
         hash
       end
       
-      def self.retrieve_field_value(string, field, rule)
+      def retrieve_field_value(string, field, rule)
         offset = rule['offset'] - 1
         length = rule['length']
         field_type = rule['a_n']
@@ -188,6 +159,34 @@ module Strata
         end
 
         value
+      end
+      
+      def matches_definition?(string)
+        self.class_layout_rules.each do |field, rule|
+          regex = rule['regex']
+          fixed_val = rule['fixed_val']
+          value = self.retrieve_field_value(string, field, rule)
+
+          return false if fixed_val and value != fixed_val
+          return false if regex and not value =~ /#{regex}/
+        end
+
+        true
+      end
+
+      def string_to_hash(string)
+        hash = {}
+
+        self.exposed_class_layout_rules.each do |field, rule|
+          hash[field.to_sym] = self.retrieve_field_value(string, field, rule)
+        end
+
+        hash
+      end
+
+      def from_s(string)
+        options = self.string_to_hash(string)
+        record = self.new(options)
       end
     
     end
