@@ -24,7 +24,8 @@ describe Strata::RecordWriter do
       set_allowed_characters ('A'..'Z').to_a
       
       string = "test1234"
-      string.valid_characters("ADAWVDAWVGR").should be_true
+      string.valid_characters("ADAWVDAWVGR").should == true
+      string.valid_characters("ADAWVDAWVGr").should == false
     end
     
     

@@ -70,6 +70,7 @@ module Strata
     end
     
     def valid_characters(string)
+      puts allowed_characters.inspect
       string.each_char.all? {|c| allowed_characters.include?(c)}
     end
     
