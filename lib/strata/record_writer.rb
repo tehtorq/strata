@@ -69,20 +69,23 @@ module Strata
       @string
     end
     
-    def validate_characters(string)
-      string.each_char do |c|
-        if k != :user_ref
-          raise "#{k}: Invalid character used in #{v}" unless allowed_characters.include?(c)
-        end
+    def valid_characters(string)
+      string.each_char.all? {|c| allowed_characters.include?(c)}
+    end
+    
+    def validate_field(field_name, field_value)
+      if field_name != :user_ref
+        raise "#{field_name}: Invalid character used in #{field_value}" unless valid_characters(field_value)
       end
+      
+      raise "#{field_name}: Argument is not a string" unless field_value.is_a? String
     end
   
     def validate!(options)
       options.each do |k,v|
         rule = layout_rules[k.to_s]
         
-        validate_characters(v)
-        raise "#{k}: Argument is not a string" unless v.is_a? String
+        validate_field(k, v)
         raise "#{k}: Input too long" if v.length > rule['length']
         raise "#{k}: Invalid data" if rule['regex'] && ((v =~ /#{rule['regex']}/) != 0)
         raise "#{k}: Invalid data - expected #{rule['fixed_val']}, got #{v}" if rule['fixed_val'] && (v != rule['fixed_val'])
