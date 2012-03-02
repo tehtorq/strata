@@ -36,16 +36,16 @@ module Strata
       return string
     end
   
-    def length
+    def record_length
       self.class.class_variable_get(:@@record_length)
     end
   
-    def delimiter
+    def record_delimiter
       self.class.class_variable_get(:@@delimiter)
     end
           
     def to_s
-      @string = " " * length + delimiter #"\r\n"
+      @string = " " * record_length + record_delimiter #"\r\n"
       @string = set_filler(@string)
     
       @string = "#{@string}"

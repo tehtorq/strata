@@ -6,4 +6,4 @@ module Strata
   CONFIG_DIR = File.expand_path(File.dirname(__FILE__)) + "/config"
 end
 
-require 'strata/helpers'
+require 'strata/record_writer'
