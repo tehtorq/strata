@@ -37,15 +37,19 @@ module Strata
     end
   
     def record_length
-      self.class.class_variable_get(:@@record_length)
+      self.class.class_variable_get(:@@record_length) || 0
     end
   
     def record_delimiter
-      self.class.class_variable_get(:@@delimiter)
+      self.class.class_variable_get(:@@record_delimiter) || ""
+    end
+    
+    def allowed_characters
+      self.class.class_variable_get(:@@record_allowed_characters)
     end
           
     def to_s
-      @string = " " * record_length + record_delimiter #"\r\n"
+      @string = " " * record_length + record_delimiter
       @string = set_filler(@string)
     
       @string = "#{@string}"
@@ -64,18 +68,54 @@ module Strata
     
       @string
     end
+    
+    def validate_characters(string)
+      string.each_char do |c|
+        if k != :user_ref
+          raise "#{k}: Invalid character used in #{v}" unless allowed_characters.include?(c)
+        end
+      end
+    end
   
     def validate!(options)
       options.each do |k,v|
         rule = layout_rules[k.to_s]
-      
-        raise "#{k}: Invalid character used in #{v}" unless ((k == :user_ref) || (v =~ /^[A-Z0-9\.\/\-\&\*\,\(\)\<\+\$\;\>\=\'\ ]*$/)) # host to host layout annexure 3
+        
+        validate_characters(v)
         raise "#{k}: Argument is not a string" unless v.is_a? String
         raise "#{k}: Input too long" if v.length > rule['length']
         raise "#{k}: Invalid data" if rule['regex'] && ((v =~ /#{rule['regex']}/) != 0)
         raise "#{k}: Invalid data - expected #{rule['fixed_val']}, got #{v}" if rule['fixed_val'] && (v != rule['fixed_val'])
         raise "#{k}: Numeric value required" if (rule['a_n'] == 'N') && !(Float(v) rescue false)
       end
+    end
+    
+    def self.matches_definition?(string)
+      self.class_layout_rules.each do |field, rule|
+        regex = rule['regex']
+        fixed_val = rule['fixed_val']
+        value = self.retrieve_field_value(string, field, rule)
+        
+        return false if fixed_val and value != fixed_val
+        return false if regex and not value =~ /#{regex}/
+      end
+      
+      true
+    end
+    
+    def self.string_to_hash(string)
+      hash = {}
+
+      self.exposed_class_layout_rules.each do |field, rule|
+        hash[field.to_sym] = self.retrieve_field_value(string, field, rule)
+      end
+
+      hash
+    end
+
+    def self.from_s(string)
+      options = self.string_to_hash(string)
+      record = self.new(options)
     end
   
     module ClassMethods
@@ -85,9 +125,13 @@ module Strata
       end
     
       def set_delimiter(delimiter)
-        class_variable_set(:@@delimiter, delimiter)
+        class_variable_set(:@@record_delimiter, delimiter)
       end
-    
+      
+      def set_allowed_characters(chars)
+        class_variable_set(:@@record_allowed_characters, chars)
+      end
+      
       def class_layout_rules
         file_name = "#{Absa::H2h::CONFIG_DIR}/#{self.name.split("::")[-2].underscore}.yml"
         record_type = self.name.split("::")[-1].underscore
@@ -108,7 +152,38 @@ module Strata
           (class << self; self; end).send :attr_accessor, k
           self.send :attr_accessor, k
         end
+      end
+      
+      def template_options
+        hash = {}
 
+        self.exposed_class_layout_rules.each do |field, rule|
+          value = rule.has_key?('fixed_val') ? rule['fixed_val'] : nil
+
+          if value
+            value = value.rjust(rule['length'], "0") if rule['a_n'] == 'N'
+            value = value.ljust(rule['length'], " ") if rule['a_n'] == 'A'
+          end
+
+          hash[field.to_sym] = value
+        end
+
+        hash
+      end
+      
+      def self.retrieve_field_value(string, field, rule)
+        offset = rule['offset'] - 1
+        length = rule['length']
+        field_type = rule['a_n']
+
+        value = string[offset, length]
+
+        unless rule['fixed_val']
+          value = value.rstrip if field_type == 'A'
+          value = value.to_i.to_s if field_type == 'N'
+        end
+
+        value
       end
     
     end
