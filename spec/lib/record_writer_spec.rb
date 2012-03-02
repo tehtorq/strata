@@ -15,4 +15,19 @@ describe Strata::RecordWriter do
     string.record_length.should == 200
   end
   
+  it "should validate that a record contains only valid characters" do
+    class String
+      include Strata::RecordWriter
+      extend Strata::RecordWriter::ClassMethods
+      
+      set_record_length 200
+      set_allowed_characters ('A'..'Z').to_a
+      
+      string = "test1234"
+      string.valid_characters("ADAWVDAWVGR").should be_true
+    end
+    
+    
+  end
+  
 end
