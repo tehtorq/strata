@@ -45,7 +45,9 @@ module Strata
     end
     
     def allowed_characters
-      self.class.class_variable_get(:@@record_allowed_characters)
+      if self.class.class_variable_defined?(:@@record_allowed_characters)
+        self.class.class_variable_get(:@@record_allowed_characters)
+      end
     end
           
     def to_s
@@ -70,6 +72,7 @@ module Strata
     end
     
     def valid_characters(string)
+      return true unless allowed_characters
       string.each_char.all? {|c| allowed_characters.include?(c)}
     end
     
